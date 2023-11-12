@@ -1,13 +1,12 @@
 import os
 import re
+import textwrap
 
 import aiofiles
 import aiohttp
-from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
-from unidecode import unidecode
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont, ImageOps
 from youtubesearchpython.__future__ import VideosSearch
 
-from AloneXMusic import app
 from config import YOUTUBE_IMG_URL
 
 
@@ -20,16 +19,7 @@ def changeImageSize(maxWidth, maxHeight, image):
     return newImage
 
 
-def clear(text):
-    list = text.split(" ")
-    title = ""
-    for i in list:
-        if len(title) + len(i) < 60:
-            title += " " + i
-    return title.strip()
-
-
-async def get_thumb(videoid):
+async def gen_thumb(videoid):
     if os.path.isfile(f"cache/{videoid}.png"):
         return f"cache/{videoid}.png"
 
@@ -66,50 +56,53 @@ async def get_thumb(videoid):
 
         youtube = Image.open(f"cache/thumb{videoid}.png")
         image1 = changeImageSize(1280, 720, youtube)
+        sex = changeImageSize(940, 420, youtube)
         image2 = image1.convert("RGBA")
-        background = image2.filter(filter=ImageFilter.BoxBlur(10))
+        background = image2.filter(filter=ImageFilter.BoxBlur(30))
         enhancer = ImageEnhance.Brightness(background)
-        background = enhancer.enhance(0.5)
+        background = enhancer.enhance(0.8)
+        logo = ImageOps.expand(sex, border=15, fill="white")
+        background.paste(logo, (150, 80))
+
         draw = ImageDraw.Draw(background)
-        arial = ImageFont.truetype("AloneXMusic/assets/font2.ttf", 30)
-        font = ImageFont.truetype("AloneXMusic/assets/font.ttf", 30)
-        draw.text((1110, 8), unidecode(app.name), fill="white", font=arial)
+        font = ImageFont.truetype("AloneMusic/assets/font2.ttf", 30)
+        font2 = ImageFont.truetype("AloneMusic/assets/font2.ttf", 30)
+        arial = ImageFont.truetype("AloneMusic/assets/font2.ttf", 30)
+        name_font = ImageFont.truetype("AloneMusic/assets/font.ttf", 30)
+        para = textwrap.wrap(title, width=32)
+        j = 0
         draw.text(
-            (55, 560),
+            (50, 600),
+            f"{title}",
+            fill="white",
+            stroke_fill="white",
+            font=font,
+        )
+
+        draw.text(
+            (50, 565),
             f"{channel} | {views[:23]}",
             (255, 255, 255),
             font=arial,
         )
+
         draw.text(
-            (57, 600),
-            clear(title),
+            (50, 640),
+            f"00:00",
             (255, 255, 255),
-            font=font,
-        )
-        draw.line(
-            [(55, 660), (1220, 660)],
-            fill="white",
-            width=5,
-            joint="curve",
-        )
-        draw.ellipse(
-            [(918, 648), (942, 672)],
-            outline="white",
-            fill="white",
-            width=15,
+            stroke_width=1,
+            stroke_fill="white",
+            font=font2,
         )
         draw.text(
-            (36, 685),
-            "00:00",
-            (255, 255, 255),
-            font=arial,
-        )
-        draw.text(
-            (1185, 685),
+            (1150, 640),
             f"{duration[:23]}",
             (255, 255, 255),
-            font=arial,
+            stroke_width=1,
+            stroke_fill="white",
+            font=font2,
         )
+        draw.line((150, 660, 1130, 660), width=6, fill="white")
         try:
             os.remove(f"cache/thumb{videoid}.png")
         except:
